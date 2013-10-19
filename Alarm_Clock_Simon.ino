@@ -39,8 +39,14 @@ int blink = 1; // This is used for blinking numbers while adjusting time
 double second_timer[1] = {0}; // This is use dto keep track of the timer used to tick for each second
 double half_second_timer[1] = {0}; // This is use dto keep track of the timer used to tick for each second
 int PM = 0; // This is the indicator that time is in PM
-int button_press_initiate[1]; 
-int button_press_completed[1];
+int button1_press_initiate[1]; 
+int button1_press_completed[1];
+int button2_press_initiate[1]; 
+int button2_press_completed[1];
+int button3_press_initiate[1]; 
+int button3_press_completed[1];
+int button4_press_initiate[1]; 
+int button4_press_completed[1];
 int button_pushed = 0; // This is the indicator that the button was pushed and released
 int alarm_tone = 1000; // This is the frequency for the alarm buzzer
 int speakerPin = 9; // This is the pin used by the alarm buzzer
@@ -61,7 +67,8 @@ int button2 = 11;
 int button3 = 12;
 int button4 = 13;
 
-int buttonstates[4] = {0,0,0,0};
+int button_states[4] = {0,0,0,0};
+int button_presses[4] = {0,0,0,0};
 
 void setup () {
   
@@ -239,17 +246,21 @@ void buzz(int tone) {
     delayMicroseconds(tone);
 }
 
-void buttoncheck(int buttonstates[4]){
-  for (int i=0;i<4;i++){buttonstates[i]=0;}
-  if(digitalRead(button1)){buttonstates[0] = 1;}
-  if(digitalRead(button2)){buttonstates[1] = 1;}
-  if(digitalRead(button3)){buttonstates[2] = 1;}
-  if(digitalRead(button4)){buttonstates[3] = 1;}
+void buttoncheck(int button_states[4]){
+//  for (int i=0;i<4;i++){button_states[i]=0;}
+  if(digitalRead(button1)){button_states[0] = 1;}
+  else {button_states[0] = 0;}
+  if(digitalRead(button2)){button_states[1] = 1;}
+  else {button_states[1] = 0;}
+  if(digitalRead(button3)){button_states[2] = 1;}
+  else {button_states[2] = 0;}
+  if(digitalRead(button4)){button_states[3] = 1;}
+  else {button_states[3] = 0;}
 }
 
 int double_click(int delay, int button_to_check){
 int double_click_complete;
-	if (button_press(button_to_check, button_press_initiate, button_press_completed) == 1){
+	if (button_to_check == 1){
 		if (click_once == 1 && millis() <= double_click_timeout + delay){
 		double_click_complete = 1;
 		Serial.print("Second click of couble click");
@@ -263,7 +274,7 @@ int double_click_complete;
 		Serial.println();
 		}
 	}
-	if (button_press(button_to_check, button_press_initiate, button_press_completed) == 0 && millis() >= double_click_timeout + delay){
+	if (button_to_check == 0 && millis() >= double_click_timeout + delay){
 	click_once = 0;
 	double_click_complete = 0;
 	}
@@ -277,10 +288,17 @@ void loop () {
 DateTime now = RTC.now();
 time_to_ints(now, current_time_array);
 
-buttoncheck(buttonstates); // Checks all 4 buttons and updates the vector
+buttoncheck(button_states); // Checks all 4 buttons and updates the vector
 
-button_state = digitalRead(button_pin);
-button_pushed = button_press (button_state, button_press_initiate, button_press_completed);
+button_state = digitalRead(button1);
+
+
+button_presses[0] = button_press (button_states[0], button1_press_initiate, button1_press_completed); 
+button_presses[1] = button_press (button_states[1], button2_press_initiate, button2_press_completed); 
+button_presses[2] = button_press (button_states[2], button3_press_initiate, button3_press_completed); 
+button_presses[3] = button_press (button_states[3], button4_press_initiate, button4_press_completed); 
+
+
 if (button_state == HIGH){
  button_hi = true;
  timeout = 0; 
@@ -311,7 +329,7 @@ else {Alarm_DP = false;}
 
 // The following is to adjust the brightness of the display with the encoder
  
-double_clicked = double_click(1000, buttonstates[0]);
+double_clicked = double_click(1000, button_presses[0]);
 if (double_clicked == 1){
 alarm_on = !alarm_on;
 click_once = 0;
