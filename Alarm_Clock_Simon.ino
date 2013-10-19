@@ -39,14 +39,18 @@ int blink = 1; // This is used for blinking numbers while adjusting time
 double second_timer[1] = {0}; // This is use dto keep track of the timer used to tick for each second
 double half_second_timer[1] = {0}; // This is use dto keep track of the timer used to tick for each second
 int PM = 0; // This is the indicator that time is in PM
-int button1_press_initiate[1]; 
-int button1_press_completed[1];
-int button2_press_initiate[1]; 
-int button2_press_completed[1];
-int button3_press_initiate[1]; 
-int button3_press_completed[1];
-int button4_press_initiate[1]; 
-int button4_press_completed[1];
+
+int button1_press_initiate[1] = {0}; 
+int button1_press_completed[1] = {0}; 
+int button2_press_initiate[1] = {0}; 
+int button2_press_completed[1] = {0}; 
+int button3_press_initiate[1] = {0}; 
+int button3_press_completed[1] = {0}; 
+int button4_press_initiate[1] = {0}; 
+int button4_press_completed[1] = {0}; 
+
+
+
 int button_pushed = 0; // This is the indicator that the button was pushed and released
 int alarm_tone = 1000; // This is the frequency for the alarm buzzer
 int speakerPin = 9; // This is the pin used by the alarm buzzer
@@ -281,6 +285,14 @@ int double_click_complete;
 return double_click_complete;
 }
 
+void check_button_presses()
+{
+  button_presses[0] = button_press (button_states[0], button1_press_initiate, button1_press_completed); 
+  button_presses[1] = button_press (button_states[1], button2_press_initiate, button2_press_completed); 
+  button_presses[2] = button_press (button_states[2], button3_press_initiate, button3_press_completed); 
+  button_presses[3] = button_press (button_states[3], button4_press_initiate, button4_press_completed);  
+}
+
 // _____________ PROGRAM STARTS HERE: _____________//
 
 void loop () {
@@ -290,14 +302,9 @@ time_to_ints(now, current_time_array);
 
 buttoncheck(button_states); // Checks all 4 buttons and updates the vector
 
-button_state = digitalRead(button1);
+button_state = digitalRead(button3);
 
-
-button_presses[0] = button_press (button_states[0], button1_press_initiate, button1_press_completed); 
-button_presses[1] = button_press (button_states[1], button2_press_initiate, button2_press_completed); 
-button_presses[2] = button_press (button_states[2], button3_press_initiate, button3_press_completed); 
-button_presses[3] = button_press (button_states[3], button4_press_initiate, button4_press_completed); 
-
+check_button_presses();
 
 if (button_state == HIGH){
  button_hi = true;
@@ -371,6 +378,14 @@ if (tick(1000, second_timer) == 1){
   Serial.print(button_counter);
   Serial.println();
 }
+
+if (button_states[0]){
+  secs_to_hms(alarm, alarm_array);
+  if (button_states[2]){if (tick(500, half_second_timer) == 1){alarm -= adjust_amount*multiplier;}}
+  if (button_states[3]){if (tick(500, half_second_timer) == 1){alarm += adjust_amount*multiplier;}}
+  time_array_to_digit_array(alarm_array, display_array);
+}
+
 
 }
 
@@ -545,8 +560,8 @@ if (tick(500, second_timer) == 1){
 // At the end of each cycle, send display array to the 4 digit display
 
  for (int digit = 0; digit < 4; digit++)  {
-   if (digit == 3){DP = PM_DP;}
-   else if (digit == 0){DP = Alarm_DP;}
+   if (digit == 3){DP = PM_DP;} // For the last digit, light up decimal point if time is PM
+   else if (digit == 0){DP = Alarm_DP;} // For the first digit, light up decimal point if the alarm is on
    else {DP = false;}
  
    if (display_array[digit] == 10){          // This is the convention for a blank digit
