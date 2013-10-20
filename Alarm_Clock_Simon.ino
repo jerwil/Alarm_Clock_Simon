@@ -293,6 +293,10 @@ void check_button_presses()
   button_presses[3] = button_press (button_states[3], button4_press_initiate, button4_press_completed);  
 }
 
+boolean compare_array(int a,int b,int c,int d, int array_to_compare[4]){
+return(a == array_to_compare[0] && b == array_to_compare[1] && c == array_to_compare[2] && d == array_to_compare[3]);
+}
+
 // _____________ PROGRAM STARTS HERE: _____________//
 
 void loop () {
@@ -363,6 +367,8 @@ if (tick(1000, second_timer) == 1){
 
 // _____________ Setting Display Brightness: _____________//
 
+if(compare_array(0,0,0,1,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness < 15){LCD_brightness ++;} // If the 4th button is pressed and no others are, increase brightness up to max
+if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness > 0){LCD_brightness --;} // If the 3rd button is pressed and no others are, decrease brightness down to min
 
 // _____________ Setting Current Time: _____________//
 
@@ -371,8 +377,8 @@ if (tick(1000, second_timer) == 1){
 
 if (button_states[0]){
   secs_to_hms(alarm, alarm_array);
-  if (button_states[2]){if (tick(500, half_second_timer) == 1){alarm -= adjust_amount*multiplier;}}
-  if (button_states[3]){if (tick(500, half_second_timer) == 1){alarm += adjust_amount*multiplier;}}
+  if (compare_array(1,0,1,0,button_states)){if (tick(500, half_second_timer) == 1){alarm -= adjust_amount*multiplier;}}
+  if (compare_array(1,0,0,1,button_states)){if (tick(500, half_second_timer) == 1){alarm += adjust_amount*multiplier;}}
   time_array_to_digit_array(alarm_array, display_array);
 }
 
