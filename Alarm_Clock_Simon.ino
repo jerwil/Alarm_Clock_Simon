@@ -300,7 +300,7 @@ void loop () {
 DateTime now = RTC.now();
 time_to_ints(now, current_time_array);
 
-buttoncheck(button_states); // Checks all 4 buttons and updates the vector
+buttoncheck(button_states); // Checks all 4 buttons and updates the array
 
 button_state = digitalRead(button3);
 
@@ -324,30 +324,12 @@ if (alarm == time_to_double(now) && alarm_on == true){
   mode = "alarm_sound";
 }
 
-// The following checks to see if the rotary encoder has been rotated:
 
 
  if(mode == "time_disp"){ // This is current time mode
    currentTime = millis();
-   time_array_to_digit_array(current_time_array, display_array); 
+   time_array_to_digit_array(current_time_array, display_array); // Show current time unless otherwise specified. This is the default.
    
-if (alarm_on == true){Alarm_DP = true;} // This indicates if the alarm is on
-else {Alarm_DP = false;}
-
-// The following is to adjust the brightness of the display with the encoder
- 
-double_clicked = double_click(1000, button_presses[0]);
-if (double_clicked == 1){
-alarm_on = !alarm_on;
-click_once = 0;
-double_clicked = 0;
-		Serial.print("ALARM STATUS CHANGE");
-		Serial.println();
-}
-   
- // get the current elapsed time
-    // 5ms since last check of encoder = 200Hz
-
 // New tick mechanism:
 
 
@@ -379,6 +361,14 @@ if (tick(1000, second_timer) == 1){
   Serial.println();
 }
 
+// _____________ Setting Display Brightness: _____________//
+
+
+// _____________ Setting Current Time: _____________//
+
+
+// _____________ Setting Alarm: _____________//
+
 if (button_states[0]){
   secs_to_hms(alarm, alarm_array);
   if (button_states[2]){if (tick(500, half_second_timer) == 1){alarm -= adjust_amount*multiplier;}}
@@ -386,6 +376,19 @@ if (button_states[0]){
   time_array_to_digit_array(alarm_array, display_array);
 }
 
+// _____________ Toggling Alarm: _____________//
+
+if (alarm_on == true){Alarm_DP = true;} // This indicates if the alarm is on
+else {Alarm_DP = false;}
+
+double_clicked = double_click(1000, button_presses[0]);
+if (double_clicked == 1){
+alarm_on = !alarm_on;
+click_once = 0;
+double_clicked = 0;
+}
+
+// if (button_states == {0,0,0,0}){if (LCD_brightness < 15){LCD_brightness ++;}} Work on brightness code
 
 }
 
