@@ -39,7 +39,8 @@ int blink = 1; // This is used for blinking numbers while adjusting time
 double second_timer[1] = {0}; // This is used to keep track of the timer used to tick for each second
 double half_second_timer[1] = {0}; // This is used to keep track of the timer used to tick for each second
 double time_set_timer[1] = {0}; // This is used to keep track of the timer used for time setting
-int time_set_tick = 100;
+double button_hold_timer[1] = {0}; // This is used to keep track of the timer used for time setting
+int time_set_tick = 200;
 int PM = 0; // This is the indicator that time is in PM
 
 int button1_press_initiate[1] = {0}; 
@@ -50,8 +51,6 @@ int button3_press_initiate[1] = {0};
 int button3_press_completed[1] = {0}; 
 int button4_press_initiate[1] = {0}; 
 int button4_press_completed[1] = {0}; 
-
-
 
 int button_pushed = 0; // This is the indicator that the button was pushed and released
 int alarm_tone = 1000; // This is the frequency for the alarm buzzer
@@ -339,33 +338,33 @@ if (alarm == time_to_double(now) && alarm_on == true){
 // New tick mechanism:
 
 
-if (tick(1000, second_timer) == 1){
-  Serial.print("Unix time: ");
-  Serial.print(now.unixtime());
-  Serial.println();
-  printtime(now);
-  old_second = now_second;
-  Serial.print("Time as a double: ");
-  Serial.print(time_to_double(now));
-  Serial.println();
-  if (button_hi == true){ // This code checks to see if the button has been held down long enough to set alarm
-//    if (button_counter >= 3) {
-//      mode = "alarm_set";
-//	  sub_mode = "hour_set";
-//    Serial.print("Switched mode to:");
-//    Serial.print(mode);
-//    Serial.println();
-//	button_pushed = 0;
-//    }
-//    button_counter += 1;
-  }
-  else {
-   button_counter = 0; 
-  }
-  Serial.print("Button held for:");
-  Serial.print(button_counter);
-  Serial.println();
-}
+//if (tick(1000, second_timer) == 1){
+//  Serial.print("Unix time: ");
+//  Serial.print(now.unixtime());
+//  Serial.println();
+//  printtime(now);
+//  old_second = now_second;
+//  Serial.print("Time as a double: ");
+//  Serial.print(time_to_double(now));
+//  Serial.println();
+//  if (button_hi == true){ // This code checks to see if the button has been held down long enough to set alarm
+////    if (button_counter >= 3) {
+////      mode = "alarm_set";
+////	  sub_mode = "hour_set";
+////    Serial.print("Switched mode to:");
+////    Serial.print(mode);
+////    Serial.println();
+////	button_pushed = 0;
+////    }
+////    button_counter += 1;
+//  }
+//  else {
+//   button_counter = 0; 
+//  }
+//  Serial.print("Button held for:");
+//  Serial.print(button_counter);
+//  Serial.println();
+//}
 
 // _____________ Setting Display Brightness: _____________//
 
@@ -380,10 +379,10 @@ if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states)
 
 if (button_states[1])
   {
-  if (button_counter >= 10){time_set_tick = 5;}
+  if (button_counter >= 8){time_set_tick = 5;}
   else if (button_counter >= 5){time_set_tick = 10;}
   else if (button_counter >= 3){time_set_tick = 50;}
-  else {time_set_tick = 100;}
+  else {time_set_tick = 200;}
   time_array_to_digit_array(current_time_array, display_array); 
   now = RTC.now();
     if (compare_array(0,1,1,0,button_states))
@@ -394,7 +393,7 @@ if (button_states[1])
       RTC.adjust(then);
       now = RTC.now();
       }
-      if (tick(1000,second_timer) == 1){button_counter += 1;}
+      if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
     }
     else if (compare_array(0,1,0,1,button_states)){
       if (tick(time_set_tick, time_set_timer) == 1)
@@ -403,9 +402,9 @@ if (button_states[1])
       RTC.adjust(then);
       now = RTC.now();
       }
-      if (tick(1000,second_timer) == 1){button_counter += 1;}
+      if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
     }
-    else {button_counter = 0;}
+    else { button_counter = 0;}
   time_array_to_digit_array(current_time_array, display_array);
   }
 
@@ -413,9 +412,23 @@ if (button_states[1])
 // _____________ Setting Alarm: _____________//
 
 if (button_states[0]){
+  if (button_counter >= 8){time_set_tick = 5;}
+  else if (button_counter >= 5){time_set_tick = 10;}
+  else if (button_counter >= 3){time_set_tick = 50;}
+  else {time_set_tick = 200;}
   secs_to_hms(alarm, alarm_array);
-  if (compare_array(1,0,1,0,button_states)){if (tick(500, half_second_timer) == 1){alarm -= adjust_amount*multiplier;}}
-  if (compare_array(1,0,0,1,button_states)){if (tick(500, half_second_timer) == 1){alarm += adjust_amount*multiplier;}}
+  if (compare_array(1,0,1,0,button_states))
+    {
+    if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
+    if (tick(time_set_tick, time_set_timer) == 1){alarm -= adjust_amount*multiplier;}
+    }
+  if (compare_array(1,0,0,1,button_states))
+    {
+    if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
+    if (tick(time_set_tick, time_set_timer) == 1){alarm += adjust_amount*multiplier;}
+    }
+  if (alarm > 86400) {alarm -= 86400;}
+  if (alarm < 0) {alarm += 86400;}
   time_array_to_digit_array(alarm_array, display_array);
 }
 
@@ -433,157 +446,6 @@ double_clicked = 0;
 
 // if (button_states == {0,0,0,0}){if (LCD_brightness < 15){LCD_brightness ++;}} Work on brightness code
 
-}
-
-  if(mode == "time_set"){ // This is time set mode
-	if (button_pushed == 1 && sub_mode == "minute_set") {sub_mode = "hour_set";}
-	else if (button_pushed == 1 && sub_mode == "hour_set") {
-		sub_mode = "minute_set";
-		button_pushed = 0;
-	}
-	time_array_to_digit_array(current_time_array, display_array); 
- 	if (sub_mode == "minute_set"){multiplier = 1;}
-	else if (sub_mode == "hour_set"){multiplier = 60;}
-        if (rotary == 1){
-	  timeout = 0;
-	  blink = 1; // This ensures the digits are visible while adjusting time			  
-	  now = RTC.now();
-	  DateTime then(now.unixtime() + adjust_amount*multiplier); // one hour later
-	  RTC.adjust(then);
-	  now = RTC.now();
-	  printtime(now);   
-	}
-        else if (rotary == -1){
-       	  timeout = 0;
-	  blink = 1;			  
-	  now = RTC.now();
-	  DateTime then(now.unixtime() - adjust_amount*multiplier); // one hour later
-	  RTC.adjust(then);
-	  now = RTC.now();
-	  printtime(now);        
-	}   
- 
-	time_array_to_digit_array(current_time_array, display_array);
-		
-	if (blink == 0 && sub_mode == "minute_set"){
-		display_array[2] = 10;
-		display_array[3] = 10;
-		}
-	if (blink == 0 && sub_mode == "hour_set"){
-		display_array[0] = 10;
-		display_array[1] = 10;
-		}
-
-	if (tick(1000, second_timer) == 1){  
-	  timeout += 1;
-	  if (timeout >= 10){ // If the button is not pressed for 10 seconds
-		mode = "time_disp";
-		timeout = 0;
-		Serial.print("Timeout, switching to clock mode");
-		Serial.println();
-	  }
-	if (button_hi == true){ // This code checks to see if the button has been held down long enough to set alarm
-		if (button_counter >= 3) {
-			mode = "alarm_set";
-			sub_mode = "hour_set";
-			Serial.print("Switched mode to:");
-			Serial.print(mode);
-			Serial.println();
-			button_pushed = 0;
-			}
-		button_counter += 1;
-	}
-	else {button_counter = 0;}
-	  // Serial.print("Time Set Mode");
-	  // Serial.println();  
-	  // print_time_array_separated(current_time_array);
-	}
-	
-	if (tick(500, half_second_timer) == 1){  
-		if ((sub_mode == "minute_set" || sub_mode == "hour_set") && blink == 0){
-			blink = 1;
-		}
-		else if ((sub_mode == "minute_set" || sub_mode == "hour_set") && blink == 1){
-			blink = 0;
-		}
-	}
-}
-
- if(mode == "alarm_set"){ // This is alarm set mode
-
-// digitalWrite(alarmLEDPin, HIGH); // This shows that we are setting the alarm. This will blink.
- 
-  if (button_pushed == 1 && sub_mode == "minute_set") {sub_mode = "hour_set";}
-  else if (button_pushed == 1 && sub_mode == "hour_set") {sub_mode = "minute_set";}
- 
-  secs_to_hms(alarm, alarm_array);
-
-  if (sub_mode == "minute_set"){multiplier = 1;}
-  else if (sub_mode == "hour_set"){multiplier = 60;}
-
-  if (rotary != 0){
-    digitalWrite(alarmLEDPin, HIGH);
-    timeout = 0;   
-    blink = 1;
-  }
-   if (rotary == 1){alarm += adjust_amount*multiplier;}
-   else if (rotary == -1){alarm -= adjust_amount*multiplier;}   
-   if (alarm > 86400) {alarm -= 86400;}
-   if (alarm < 0) {alarm += 86400;}
-
-
-  time_array_to_digit_array(alarm_array, display_array);
-
-if (blink == 0 && sub_mode == "minute_set"){
-	display_array[2] = 10;
-	display_array[3] = 10;
-	// digitalWrite(alarmLEDPin, LOW);
-	}
-if (blink == 0 && sub_mode == "hour_set"){
-	display_array[0] = 10;
-	display_array[1] = 10;
-	// digitalWrite(alarmLEDPin, LOW);
-	}
-
-	
-	
-	if (tick(1000, second_timer) == 1){
-		Serial.print("Alarm as int:");
-		Serial.println(alarm);
-	  timeout += 1;
-	  if (timeout >= 10){ // If the button is not pressed for 10 seconds
-		mode = "time_disp";
-		timeout = 0;
-		Serial.print("Timeout, switching to clock mode");
-		Serial.println();
-	  }
-	if (button_hi == true){ // This code checks to see if the button has been held down long enough to set alarm
-		if (button_counter >= 3) {
-			mode = "time_set";
-			sub_mode = "minute_set";
-			Serial.print("Switched mode to:");
-			Serial.print(mode);
-			Serial.println();
-			button_pushed = 0;
-			}
-		button_counter += 1;
-	}
-	else {button_counter = 0;}
-	  Serial.print("Alarm Set Mode");
-	  Serial.println();  
-	  print_time_array_separated(alarm_array);
-	}
-	  
-	if (tick(500, half_second_timer) == 1){  
-		if ((sub_mode == "minute_set" || sub_mode == "hour_set") && blink == 0){
-		blink = 1;
-		digitalWrite(alarmLEDPin, HIGH);
-		}
-		else if ((sub_mode == "minute_set" || sub_mode == "hour_set") && blink == 1){
-		blink = 0;
-		digitalWrite(alarmLEDPin, LOW);
-		}
-	}
 }
  
 if(mode == "alarm_sound"){ // This is alarm mode. Current problem is display_array doesn't get updated
