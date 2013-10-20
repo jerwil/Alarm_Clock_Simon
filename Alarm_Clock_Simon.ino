@@ -36,8 +36,10 @@ int button_state = 0;
 int button_counter = 0; // This is used to detect how long the button is held for
 int timeout = 0; // Time out for not pushing the button for a while
 int blink = 1; // This is used for blinking numbers while adjusting time
-double second_timer[1] = {0}; // This is use dto keep track of the timer used to tick for each second
-double half_second_timer[1] = {0}; // This is use dto keep track of the timer used to tick for each second
+double second_timer[1] = {0}; // This is used to keep track of the timer used to tick for each second
+double half_second_timer[1] = {0}; // This is used to keep track of the timer used to tick for each second
+double time_set_timer[1] = {0}; // This is used to keep track of the timer used for time setting
+int time_set_tick = 100;
 int PM = 0; // This is the indicator that time is in PM
 
 int button1_press_initiate[1] = {0}; 
@@ -347,15 +349,15 @@ if (tick(1000, second_timer) == 1){
   Serial.print(time_to_double(now));
   Serial.println();
   if (button_hi == true){ // This code checks to see if the button has been held down long enough to set alarm
-    if (button_counter >= 3) {
-      mode = "alarm_set";
-	  sub_mode = "hour_set";
-    Serial.print("Switched mode to:");
-    Serial.print(mode);
-    Serial.println();
-	button_pushed = 0;
-    }
-    button_counter += 1;
+//    if (button_counter >= 3) {
+//      mode = "alarm_set";
+//	  sub_mode = "hour_set";
+//    Serial.print("Switched mode to:");
+//    Serial.print(mode);
+//    Serial.println();
+//	button_pushed = 0;
+//    }
+//    button_counter += 1;
   }
   else {
    button_counter = 0; 
@@ -367,10 +369,45 @@ if (tick(1000, second_timer) == 1){
 
 // _____________ Setting Display Brightness: _____________//
 
-if(compare_array(0,0,0,1,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness < 15){LCD_brightness ++;} // If the 4th button is pressed and no others are, increase brightness up to max
+if(compare_array(0,0,0,1,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness < 15)  // If the 4th button is pressed and no others are, increase brightness up to max
+  {LCD_brightness ++;
+  mydisplay.shutdown(0, false);}
 if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness > 0){LCD_brightness --;} // If the 3rd button is pressed and no others are, decrease brightness down to min
+if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness == 1){mydisplay.shutdown(0, true);}  // turns off display below min brightness
+
 
 // _____________ Setting Current Time: _____________//
+
+if (button_states[1])
+  {
+  if (button_counter >= 10){time_set_tick = 5;}
+  else if (button_counter >= 5){time_set_tick = 10;}
+  else if (button_counter >= 3){time_set_tick = 50;}
+  else {time_set_tick = 100;}
+  time_array_to_digit_array(current_time_array, display_array); 
+  now = RTC.now();
+    if (compare_array(0,1,1,0,button_states))
+    {
+      if (tick(time_set_tick, time_set_timer) == 1)
+      {
+      DateTime then(now.unixtime() - adjust_amount*multiplier);
+      RTC.adjust(then);
+      now = RTC.now();
+      }
+      if (tick(1000,second_timer) == 1){button_counter += 1;}
+    }
+    else if (compare_array(0,1,0,1,button_states)){
+      if (tick(time_set_tick, time_set_timer) == 1)
+      {
+      DateTime then(now.unixtime() + adjust_amount*multiplier);
+      RTC.adjust(then);
+      now = RTC.now();
+      }
+      if (tick(1000,second_timer) == 1){button_counter += 1;}
+    }
+    else {button_counter = 0;}
+  time_array_to_digit_array(current_time_array, display_array);
+  }
 
 
 // _____________ Setting Alarm: _____________//
