@@ -368,12 +368,10 @@ if (alarm == time_to_double(now) && alarm_on == true){
 
 // _____________ Setting Display Brightness: _____________//
 
-if(compare_array(0,0,0,1,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness < 15)  // If the 4th button is pressed and no others are, increase brightness up to max
-  {LCD_brightness ++;
-  mydisplay.shutdown(0, false);}
-if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness > 0){LCD_brightness --;} // If the 3rd button is pressed and no others are, decrease brightness down to min
-if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness == 1){mydisplay.shutdown(0, true);}  // turns off display below min brightness
-
+if(compare_array(0,0,0,1,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness < 15){LCD_brightness ++;} // If the 4th button is pressed and no others are, increase brightness up to max
+if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness >= 1){LCD_brightness --;} // If the 3rd button is pressed and no others are, decrease brightness down to min
+if(compare_array(0,0,1,0,button_presses) && compare_array(0,0,0,0,button_states) && LCD_brightness == 0){mydisplay.shutdown(0, true);}  // turns off display below min brightness
+if (LCD_brightness >= 1){mydisplay.shutdown(0, false);}
 
 // _____________ Setting Current Time: _____________//
 
@@ -462,7 +460,7 @@ if (tick(500, second_timer) == 1){
 		Serial.print("Alarm!!!!");
 		Serial.println();
 	}
-	if (button_pushed == 1){mode = "time_disp";}
+	if (button_states[0] == 1){mode = "time_disp";}
 }
 
 // At the end of each cycle, send display array to the 4 digit display
