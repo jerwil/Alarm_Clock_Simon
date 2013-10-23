@@ -6,7 +6,7 @@
  
 RTC_DS1307 RTC;
 
-LedControl mydisplay = LedControl(3, 4, 5, 1);
+LedControl mydisplay = LedControl(2, 3, 4, 1);
 
 int adjust_amount = 60;    // how many seconds to adjust the time by
 int multiplier = 1; // This mutliplier is used to change to hour adjustment
@@ -54,7 +54,7 @@ int button4_press_completed[1] = {0};
 
 int button_pushed = 0; // This is the indicator that the button was pushed and released
 int alarm_tone = 1000; // This is the frequency for the alarm buzzer
-int speakerPin = 9; // This is the pin used by the alarm buzzer
+int speakerPin = 5; // This is the pin used by the alarm buzzer
 int alarmLEDPin = 2; // This is the pin used to indicate if the alarm is on
 boolean alarm_on = false;
 unsigned long double_click_timeout;
@@ -67,15 +67,42 @@ boolean DP = false; //A general decimal point variable
 int LCD_brightness = 7;
 int rotary = 0;
 
-int button1 = 10;
-int button2 = 11;
-int button3 = 12;
-int button4 = 13;
+int button1 = 6;
+int button2 = 8;
+int button3 = 10;
+int button4 = 12;
+
+int led1 = 7;
+int led2 = 9;
+int led3 = 11;
+int led4 = 13;
 
 int button_states[4] = {0,0,0,0};
 int button_presses[4] = {0,0,0,0};
 
+// Constants for Simon portion: //
+
+int gamestate = 0;
+int waitingforinput = 0;
+int currentlevel = 1; // This is the level (also the number of button presses to pass to next level)
+long randnum = 0; //initialize long variable for random number from 0-100.
+int randnumint = 0; //initialize random integer for loop. Will be from 1-4 later.
+int butwait = 500; //amount of time to wait for next button input (ghetto de-bounce)
+int ledtime = 500; //amount of time each LED flashes for when button is pressed
+int numlevels = 10; //number of levels until the game is won
+int pinandtone = 0; //This integer is used when the sequence is displayed
+int correct = 0; //This variable must be 1 in order to go to the next level
+int speedfactor = 5; //This is the final speed of the lights and sounds for the last level. This increases as more games are won
+int leddelay = 200; //Initializing time for LED. This will decrease as the level increases
+const int tones[] = {1915, 1700, 1519, 1432, 2700}; // The last tone is the fail tone
+const int ledpins[] = {7, 9, 11, 13}; //This is the LED pin format for the simon code
+const int buttonpins[] = {6, 8, 10, 12}; //This is the button pin format for the simon code
+int lastbutton_states[] = {0,0,0,0}; 
+int buttonPushCounter[] = {0,0,0,0}; 
+
 void setup () {
+  
+randomSeed(analogRead(A0));
   
 mydisplay.shutdown(0, false);  // turns on display
 mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
@@ -298,6 +325,17 @@ boolean compare_array(int a,int b,int c,int d, int array_to_compare[4]){
 return(a == array_to_compare[0] && b == array_to_compare[1] && c == array_to_compare[2] && d == array_to_compare[3]);
 }
 
+// Functions for Simon portion:
+
+void playTone(int tone, int duration) {
+  for (long i = 0; i < duration * 1000L; i += tone * 2) {
+    digitalWrite(speakerPin, HIGH);
+    delayMicroseconds(tone);
+    digitalWrite(speakerPin, LOW);
+    delayMicroseconds(tone);
+  }
+}
+
 // _____________ PROGRAM STARTS HERE: _____________//
 
 void loop () {
@@ -420,11 +458,12 @@ if (button_states[0]){
     if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
     if (tick(time_set_tick, time_set_timer) == 1){alarm -= adjust_amount*multiplier;}
     }
-  if (compare_array(1,0,0,1,button_states))
+  else if (compare_array(1,0,0,1,button_states))
     {
     if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
     if (tick(time_set_tick, time_set_timer) == 1){alarm += adjust_amount*multiplier;}
     }
+  else { button_counter = 0;}  
   if (alarm > 86400) {alarm -= 86400;}
   if (alarm < 0) {alarm += 86400;}
   time_array_to_digit_array(alarm_array, display_array);
@@ -442,11 +481,9 @@ click_once = 0;
 double_clicked = 0;
 }
 
-// if (button_states == {0,0,0,0}){if (LCD_brightness < 15){LCD_brightness ++;}} Work on brightness code
-
 }
  
-if(mode == "alarm_sound"){ // This is alarm mode. Current problem is display_array doesn't get updated
+if(mode == "alarm_sound"){ // This is alarm mode
   
 time_array_to_digit_array(current_time_array, display_array);
 
@@ -461,6 +498,7 @@ if (tick(500, second_timer) == 1){
 		Serial.println();
 	}
 	if (button_states[0] == 1){mode = "time_disp";}
+
 }
 
 // At the end of each cycle, send display array to the 4 digit display
