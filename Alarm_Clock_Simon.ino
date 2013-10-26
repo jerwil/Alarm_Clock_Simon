@@ -102,7 +102,7 @@ int buttonPushCounter[] = {0,0,0,0};
 
 void setup () {
   
-randomSeed(analogRead(A0));
+randomSeed(analogRead(A3));
   
 mydisplay.shutdown(0, false);  // turns on display
 mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
@@ -115,7 +115,11 @@ mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
     pinMode(button1, INPUT);
     pinMode(button2, INPUT);
     pinMode(button3, INPUT);
-    pinMode(button4, INPUT);	
+    pinMode(button4, INPUT);
+    pinMode(led1, OUTPUT);
+    pinMode(led2, OUTPUT);	
+    pinMode(led3, OUTPUT);	
+    pinMode(led4, OUTPUT);		
 
     Serial.begin(57600);
     Wire.begin();
@@ -325,6 +329,17 @@ boolean compare_array(int a,int b,int c,int d, int array_to_compare[4]){
 return(a == array_to_compare[0] && b == array_to_compare[1] && c == array_to_compare[2] && d == array_to_compare[3]);
 }
 
+void LEDs_with_buttons(int button_status[4]){
+ if (button_status[0] == 1){digitalWrite(led1, HIGH);}
+ else{digitalWrite(led1, LOW);}
+ if (button_status[1] == 1){digitalWrite(led2, HIGH);}
+ else{digitalWrite(led2, LOW);}
+ if (button_status[2] == 1){digitalWrite(led3, HIGH);}
+ else{digitalWrite(led3, LOW);}
+ if (button_status[3] == 1){digitalWrite(led4, HIGH);}
+ else{digitalWrite(led4, LOW);}
+}
+
 // Functions for Simon portion:
 
 void playTone(int tone, int duration) {
@@ -343,19 +358,7 @@ void loop () {
 DateTime now = RTC.now();
 time_to_ints(now, current_time_array);
 
-buttoncheck(button_states); // Checks all 4 buttons and updates the array
 
-button_state = digitalRead(button3);
-
-check_button_presses();
-
-if (button_state == HIGH){
- button_hi = true;
- timeout = 0; 
-}
-else {
- button_hi = false; 
-}
 
 if (PM == 1){PM_DP = true;}
 else{PM_DP = false;}
@@ -370,6 +373,13 @@ if (alarm == time_to_double(now) && alarm_on == true){
 
 
  if(mode == "time_disp"){ // This is current time mode
+ 
+  buttoncheck(button_states); // Checks all 4 buttons and updates the array
+
+  LEDs_with_buttons(button_states);
+
+  check_button_presses();
+
    currentTime = millis();
    time_array_to_digit_array(current_time_array, display_array); // Show current time unless otherwise specified. This is the default.
    
@@ -485,19 +495,145 @@ double_clicked = 0;
  
 if(mode == "alarm_sound"){ // This is alarm mode
   
-time_array_to_digit_array(current_time_array, display_array);
+int numarray[numlevels];
+int userarray[numlevels];
 
-	if (blink == 0){
-           for (int digit = 0; digit < 4; digit++)  {display_array[digit] = 10;}
-		buzz(alarm_tone);
-	}  
-if (tick(500, second_timer) == 1){
-	if (blink == 0){blink = 1;}
-	else if (blink == 1){blink = 0;}
-		Serial.print("Alarm!!!!");
-		Serial.println();
-	}
-	if (button_states[0] == 1){mode = "time_disp";}
+//The following clears out both arrays for new games
+int i;
+
+if (gamestate == 0){
+for (i = 0; i < numlevels; i = i + 1) {
+   numarray[i]=0;
+   userarray[i]=0;
+  randnum = random(1,100);
+    if (randnum <= 25) {
+      randnumint = 0;
+    }
+    if (randnum > 25){
+    randnumint = 1;
+  }
+    if (randnum > 50){
+    randnumint = 2;
+  }
+    if (randnum > 75){
+    randnumint = 3;
+  }
+  numarray[i]=randnumint;
+//  Serial.println(numarray[i]);
+}
+if (i == numlevels){
+ gamestate = 1; 
+}
+}
+
+
+//The following will show the user the current sequence
+if (waitingforinput == 0){
+ delay (200);
+i = 0;
+for (i = 0; i < currentlevel; i= i + 1){
+  leddelay = ledtime/(1+(speedfactor/numlevels)*(currentlevel - 1));
+      pinandtone = numarray[i];
+      digitalWrite(ledpins[pinandtone], HIGH);
+      playTone(tones[pinandtone], leddelay);
+      digitalWrite(ledpins[pinandtone], LOW);
+      delay(100/speedfactor);
+    }
+    waitingforinput = 1;
+}
+i = 0;
+int buttonchange = 0;    
+int j = 0; // This is the current position in the sequence
+while (j < currentlevel){    
+    while (buttonchange == 0){
+          for (i = 0; i < 4; i = i + 1){ 
+          button_states[i] = digitalRead(buttonpins[i]);
+          buttonchange = buttonchange + button_states[i];
+        }
+    }
+     for (i = 0; i < 4; i = i + 1){
+        if (button_states[i] == HIGH) {
+            digitalWrite(ledpins[i], HIGH);
+            playTone(tones[i], ledtime);
+            digitalWrite(ledpins[i], LOW);
+            waitingforinput = 0;
+            userarray[j]=i; 
+            button_states[i] = LOW;
+            buttonchange = 0;
+         }
+       } 
+        if (userarray[j] == numarray[j]){
+            j++;  
+            correct = 1;
+            }
+        else{
+          
+            correct = 0;
+            i = 4;
+            j = currentlevel;
+            waitingforinput = 0;
+        }
+}
+
+if (correct == 0){
+  delay(300);
+  i = 0;
+  gamestate = 0;
+  currentlevel = 1;
+  for (i = 0; i < 4; i = i + 1){
+         digitalWrite(ledpins[i], HIGH);
+      }
+          playTone(tones[4], ledtime);
+   for (i = 0; i < 4; i = i + 1){
+         digitalWrite(ledpins[i], LOW);   
+       }
+       delay (200);
+  for (i = 0; i < 4; i = i + 1){
+         digitalWrite(ledpins[i], HIGH);
+      }
+          playTone(tones[4], ledtime);
+   for (i = 0; i < 4; i = i + 1){
+         digitalWrite(ledpins[i], LOW);   
+       }
+       
+       delay(500);
+       gamestate = 0;
+}
+
+Serial.println("The user sequence is");
+for (i = 0; i < numlevels; i = i + 1) {
+   Serial.println(userarray[i]);
+}
+Serial.println("The answers are");
+for (i = 0; i < numlevels; i = i + 1) {
+   Serial.println(numarray[i]);
+}
+
+if (correct == 1){
+    currentlevel++;
+    waitingforinput = 0;
+    }
+if (currentlevel == numlevels){
+//  delay(500);
+//  // The following is the victory anmiation/sound:
+//  int notes[] = {2, 2, 2, 2, 0, 1, 2, 1, 2};
+//  int note = 0;
+//  int tempo[] = {200, 200, 200, 400, 400, 400, 200, 200, 600}; 
+//  int breaks[] = {100, 100, 100, 200, 200, 200, 300, 100, 200}; 
+//  for (i = 0; i < 9; i = i + 1){
+//  note = notes[i];
+//    digitalWrite(ledpins[note], HIGH);
+//    playTone(tones[note], tempo[i]);
+//    digitalWrite(ledpins[note], LOW);
+//    delay(breaks[i]);
+//  }
+gamestate = 0;
+currentlevel = 1;
+//numlevels = numlevels + 2;
+//speedfactor = speedfactor + 1;
+
+mode = "time_disp";
+    }
 
 }
 
