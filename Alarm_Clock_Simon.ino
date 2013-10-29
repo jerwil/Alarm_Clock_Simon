@@ -12,15 +12,9 @@ int adjust_amount = 60;    // how many seconds to adjust the time by
 int multiplier = 1; // This mutliplier is used to change to hour adjustment
 unsigned long currentTime;
 unsigned long loopTime;
-const int pin_A = 11;  // Rotary encoder pin A
-const int pin_B = 10;  // Rotary encoder pin B
 
-const int button_pin = 8;
-unsigned char encoder_A;
-unsigned char encoder_B;
-unsigned char encoder_A_prev=0;
 int current_count;
-char* mode = "time_disp";
+char* mode = "alarm_sound";
 char* sub_mode = "minute_set";
 char* mode_str[] = {"Tacos","Clock","Alarm Set"};
 double alarm = 10800; // Alarm default in seconds
@@ -59,7 +53,8 @@ int alarmLEDPin = 2; // This is the pin used to indicate if the alarm is on
 boolean alarm_on = false;
 unsigned long double_click_timeout;
 int click_once = 0; // This integer is used to store the fact that we have one click and are looking for the second to occur before the delay
-int double_clicked = 0; // This tells us if a double click occured. 
+int double_clicked = 0; // This tells us if a double click occured.
+int tone_happening = 0;
 
 boolean Alarm_DP = false; //Indicate if the alarm decimal point should be lit
 boolean PM_DP = false; //Indicate if the PM decimal point should be lit
@@ -102,14 +97,11 @@ int buttonPushCounter[] = {0,0,0,0};
 
 void setup () {
   
-randomSeed(analogRead(A3));
+randomSeed(analogRead(A0));
   
 mydisplay.shutdown(0, false);  // turns on display
 mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
   
-    pinMode(pin_A, INPUT);
-    pinMode(pin_B, INPUT);
-    pinMode(button_pin, INPUT);
     pinMode (speakerPin, OUTPUT);
     pinMode (alarmLEDPin, OUTPUT);
     pinMode(button1, INPUT);
@@ -136,6 +128,9 @@ mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
   
     // following line sets the RTC to the date & time this sketch was compiled
     //RTC.adjust(DateTime(__DATE__, __TIME__));
+    
+
+
 }
 
 
@@ -343,21 +338,33 @@ void LEDs_with_buttons(int button_status[4]){
 // Functions for Simon portion:
 
 void playTone(int tone, int duration) {
-  for (long i = 0; i < duration * 1000L; i += tone * 2) {
+  tone_happening = 1;
+  for (long dur = 0; dur < duration * 1000L; dur += tone * 2) {
     digitalWrite(speakerPin, HIGH);
     delayMicroseconds(tone);
     digitalWrite(speakerPin, LOW);
     delayMicroseconds(tone);
+    Serial.print("Playing tone:");
+    Serial.print(tone);
+    Serial.print("    Duration is:");
+    Serial.println(dur);
+    tone_happening = 1;
   }
+  tone_happening = 0;
 }
 
 // _____________ PROGRAM STARTS HERE: _____________//
 
 void loop () {
-
+  
+DateTime now;
+  
+Serial.print("Tone happening: ");
+Serial.println(tone_happening);
+if (tone_happening == 0){
 DateTime now = RTC.now();
 time_to_ints(now, current_time_array);
-
+}
 
 
 if (PM == 1){PM_DP = true;}
@@ -365,14 +372,22 @@ else{PM_DP = false;}
 
 //time_to_ints(now, current_time_array);
 
+
+
 // The following checks the alarm condition:
+
+/*
 if (alarm == time_to_double(now) && alarm_on == true){
   mode = "alarm_sound";
 }
 
+*/
 
 
- if(mode == "time_disp"){ // This is current time mode
+
+
+
+if(mode == "time_disp"){ // This is current time mode
  
   buttoncheck(button_states); // Checks all 4 buttons and updates the array
 
@@ -495,6 +510,8 @@ double_clicked = 0;
  
 if(mode == "alarm_sound"){ // This is alarm mode
   
+time_array_to_digit_array(current_time_array, display_array);  
+  
 int numarray[numlevels];
 int userarray[numlevels];
 
@@ -555,6 +572,8 @@ while (j < currentlevel){
         if (button_states[i] == HIGH) {
             digitalWrite(ledpins[i], HIGH);
             playTone(tones[i], ledtime);
+            Serial.print("Input into tones function:");
+            Serial.println(tones[i]);
             digitalWrite(ledpins[i], LOW);
             waitingforinput = 0;
             userarray[j]=i; 
@@ -563,11 +582,12 @@ while (j < currentlevel){
          }
        } 
         if (userarray[j] == numarray[j]){
+            Serial.println("Correct!");
             j++;  
             correct = 1;
             }
         else{
-          
+            Serial.println("Wrong!");
             correct = 0;
             i = 4;
             j = currentlevel;
@@ -614,23 +634,24 @@ if (correct == 1){
     waitingforinput = 0;
     }
 if (currentlevel == numlevels){
-//  delay(500);
-//  // The following is the victory anmiation/sound:
-//  int notes[] = {2, 2, 2, 2, 0, 1, 2, 1, 2};
-//  int note = 0;
-//  int tempo[] = {200, 200, 200, 400, 400, 400, 200, 200, 600}; 
-//  int breaks[] = {100, 100, 100, 200, 200, 200, 300, 100, 200}; 
-//  for (i = 0; i < 9; i = i + 1){
-//  note = notes[i];
-//    digitalWrite(ledpins[note], HIGH);
-//    playTone(tones[note], tempo[i]);
-//    digitalWrite(ledpins[note], LOW);
-//    delay(breaks[i]);
-//  }
+  Serial.println("VICTORY!");
+  delay(500);
+  // The following is the victory anmiation/sound:
+  int notes[] = {2, 2, 2, 2, 0, 1, 2, 1, 2};
+  int note = 0;
+  int tempo[] = {200, 200, 200, 400, 400, 400, 200, 200, 600}; 
+  int breaks[] = {100, 100, 100, 200, 200, 200, 300, 100, 200}; 
+  for (i = 0; i < 9; i = i + 1){
+  note = notes[i];
+    digitalWrite(ledpins[note], HIGH);
+    playTone(tones[note], tempo[i]);
+    digitalWrite(ledpins[note], LOW);
+    delay(breaks[i]);
+  }
 gamestate = 0;
 currentlevel = 1;
-//numlevels = numlevels + 2;
-//speedfactor = speedfactor + 1;
+numlevels = numlevels + 2;
+speedfactor = speedfactor + 1;
 
 mode = "time_disp";
     }
@@ -638,6 +659,7 @@ mode = "time_disp";
 }
 
 // At the end of each cycle, send display array to the 4 digit display
+/*
 
  for (int digit = 0; digit < 4; digit++)  {
    if (digit == 3){DP = PM_DP;} // For the last digit, light up decimal point if time is PM
@@ -651,7 +673,7 @@ mode = "time_disp";
  } 
  
  mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
-
+*/
 }
 
 
