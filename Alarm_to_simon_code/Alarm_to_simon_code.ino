@@ -113,6 +113,12 @@ Serial.begin(57600);
 mydisplay.shutdown(0, false);  // turns on display
 mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
 
+    Wire.begin();
+    RTC.begin();
+	DateTime now = RTC.now();
+	int now_second = now.second();
+	old_second = now_second;
+
 }
 int gamestate = 0;
 int waitingforinput = 0;
@@ -126,6 +132,207 @@ int pinandtone = 0; //This integer is used when the sequence is displayed
 int correct = 0; //This variable must be 1 in order to go to the next level
 int speedfactor = 5; //This is the final speed of the lights and sounds for the last level. This increases as more games are won
 int leddelay = 200; //Initializing time for LED. This will decrease as the level increases
+
+void printtime(DateTime time){ // This function mainly used for debugging purposes
+    Serial.print(" time: ");
+    Serial.print(time.year(), DEC);
+    Serial.print('/');
+    Serial.print(time.month(), DEC);
+    Serial.print('/');
+    Serial.print(time.day(), DEC);
+    Serial.print(' ');
+    Serial.print(time.hour(), DEC);
+    Serial.print(':');
+    Serial.print(time.minute(), DEC);
+    Serial.print(':');
+    Serial.print(time.second(), DEC);
+    Serial.println();
+    Serial.print("mode = ");    
+    Serial.print(mode);
+    Serial.println();  
+}
+
+void time_to_ints(DateTime time, int time_array[6]){
+    int year_int, month_int, day_int, hour_int, minute_int, second_int;
+    year_int = time.year();
+    month_int = time.month();
+    day_int = time.day();
+    hour_int = time.hour();
+    minute_int = time.minute();
+    second_int = time.second();
+    time_array[0] = year_int;
+    time_array[1] = month_int;
+    time_array[2] = day_int;
+    time_array[3] = hour_int;
+    time_array[4] = minute_int;
+    time_array[5] =  second_int;
+}
+
+double time_to_double(DateTime time){
+    double year_int, month_int, day_int, hour_int, minute_int, second_int;
+    year_int = time.year();
+    month_int = time.month();
+    day_int = time.day();
+    hour_int = time.hour();
+    minute_int = time.minute();
+    second_int = time.second();
+    double seconds = hour_int*3600+minute_int*60+second_int;
+    return seconds;
+}
+
+void print_time_array_separated(int time_array[6]){
+  Serial.println();
+  Serial.print("Hours: ");
+  Serial.println(time_array[3]);
+  Serial.print("Minutes: ");
+  Serial.println(time_array[4]);
+  Serial.print("Seconds: ");
+  Serial.println(time_array[5]);
+  
+}
+
+int tick(int delay, double timekeeper[1]){
+currentTime = millis();
+if(currentTime >= (timekeeper[0] + delay)){
+	timekeeper[0] = currentTime;
+	return 1;
+  }
+else {return 0;}
+}
+
+void secs_to_hms(double secs_in, int time_array[6]){
+    double hours = floor(secs_in/3600);
+    double minutes = floor(((secs_in - hours*3600)/60));
+    double seconds = floor((secs_in - hours*3600 - minutes*60));
+    int hour_int = hours;
+    int minute_int = minutes;
+    int second_int = seconds;
+    time_array[3] = hour_int;
+    time_array[4] = minute_int;
+    time_array[5] = second_int;
+}
+
+double time_array_to_secs(int time_array[6]){
+    return time_array[3]*60*60 + time_array[4]*60 + time_array[5];
+}
+
+void time_array_to_digit_array(int time_array[6], int digit_array[6]){
+  int hours = time_array[3];
+  int minutes = time_array[4];
+  int seconds = time_array[5];
+  PM = 0; // AM until proven PM
+  
+  if (time_format == 12){
+	if (hours == 12){PM = 1;}
+	else if (hours > 12) {
+		hours -= 12;
+		PM = 1;
+	}
+	else if (hours == 0){
+	hours = 12;
+	PM = 0;
+	}
+  }
+  
+  if (hours < 10 && hours > 0){
+    digit_array[0] = 10; // 10 will be the designation for not displaying anything
+    digit_array[1] = hours;
+  }
+  else {
+    digit_array[0] = hours/10;
+    digit_array[1] = hours%10;
+  }
+  if (minutes < 10){
+  digit_array[2] = 0; // 10 will be the designation for not displaying anything
+  digit_array[3] = minutes;
+  }
+  else {
+    digit_array[2] = minutes/10;
+    digit_array[3] = minutes%10;
+  }
+  if (time_format == 24){PM = 0;} // The PM LED is not needed in 24 hour time format
+
+}
+
+int button_press (int button_indicator, int button_press_initiated[1], int button_press_complete[1]){
+	if (button_indicator == 0 && button_press_initiated[0] == 1) {
+	button_press_complete[0] = 1;
+	Serial.print("Button press complete");
+	Serial.println();
+	button_press_initiated[0] = 0;
+	}
+	else if (button_indicator == 1){
+	button_press_initiated[0] = 1;
+	button_press_complete[0] = 0;
+	}
+	else {button_press_complete[0] = 0;}
+return button_press_complete[0];
+}
+
+void buzz(int tone) {
+    digitalWrite(speakerPin, HIGH);
+    delayMicroseconds(tone);
+    digitalWrite(speakerPin, LOW);
+    delayMicroseconds(tone);
+}
+
+void buttoncheck(int button_states[4]){
+//  for (int i=0;i<4;i++){button_states[i]=0;}
+  if(digitalRead(button1)){button_states[0] = 1;}
+  else {button_states[0] = 0;}
+  if(digitalRead(button2)){button_states[1] = 1;}
+  else {button_states[1] = 0;}
+  if(digitalRead(button3)){button_states[2] = 1;}
+  else {button_states[2] = 0;}
+  if(digitalRead(button4)){button_states[3] = 1;}
+  else {button_states[3] = 0;}
+}
+
+int double_click(int delay, int button_to_check){
+int double_click_complete;
+	if (button_to_check == 1){
+		if (click_once == 1 && millis() <= double_click_timeout + delay){
+		double_click_complete = 1;
+		Serial.print("Second click of couble click");
+		Serial.println();
+		}
+		else if (click_once == 0) {
+		click_once = 1;
+		double_click_complete = 0;
+		double_click_timeout = millis();
+		Serial.print("First click of couble click");
+		Serial.println();
+		}
+	}
+	if (button_to_check == 0 && millis() >= double_click_timeout + delay){
+	click_once = 0;
+	double_click_complete = 0;
+	}
+return double_click_complete;
+}
+
+void check_button_presses()
+{
+  button_presses[0] = button_press (button_states[0], button1_press_initiate, button1_press_completed); 
+  button_presses[1] = button_press (button_states[1], button2_press_initiate, button2_press_completed); 
+  button_presses[2] = button_press (button_states[2], button3_press_initiate, button3_press_completed); 
+  button_presses[3] = button_press (button_states[3], button4_press_initiate, button4_press_completed);  
+}
+
+boolean compare_array(int a,int b,int c,int d, int array_to_compare[4]){
+return(a == array_to_compare[0] && b == array_to_compare[1] && c == array_to_compare[2] && d == array_to_compare[3]);
+}
+
+void LEDs_with_buttons(int button_status[4]){
+ if (button_status[0] == 1){digitalWrite(led1, HIGH);}
+ else{digitalWrite(led1, LOW);}
+ if (button_status[1] == 1){digitalWrite(led2, HIGH);}
+ else{digitalWrite(led2, LOW);}
+ if (button_status[2] == 1){digitalWrite(led3, HIGH);}
+ else{digitalWrite(led3, LOW);}
+ if (button_status[3] == 1){digitalWrite(led4, HIGH);}
+ else{digitalWrite(led4, LOW);}
+}
 
 void loop() {
   
