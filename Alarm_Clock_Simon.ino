@@ -84,7 +84,7 @@ long randnum = 0; //initialize long variable for random number from 0-100.
 int randnumint = 0; //initialize random integer for loop. Will be from 1-4 later.
 int butwait = 500; //amount of time to wait for next button input (ghetto de-bounce)
 int ledtime = 500; //amount of time each LED flashes for when button is pressed
-int numlevels = 10; //number of levels until the game is won
+int numlevels = 5; //number of levels until the game is won
 int pinandtone = 0; //This integer is used when the sequence is displayed
 int correct = 0; //This variable must be 1 in order to go to the next level
 int speedfactor = 5; //This is the final speed of the lights and sounds for the last level. This increases as more games are won
@@ -335,6 +335,20 @@ void LEDs_with_buttons(int button_status[4]){
  else{digitalWrite(led4, LOW);}
 }
 
+void update_screen(){
+  for (int digit = 0; digit < 4; digit++)  {
+   if (digit == 3){DP = PM_DP;} // For the last digit, light up decimal point if time is PM
+   else if (digit == 0){DP = Alarm_DP;} // For the first digit, light up decimal point if the alarm is on
+   else {DP = false;}
+ 
+   if (display_array[digit] == 10){          // This is the convention for a blank digit
+    mydisplay.setChar(0,3-digit,' ', DP); // This is how you print a blank digit (as a space character)
+   }
+   else {mydisplay.setDigit(0, 3-digit, display_array[digit], DP);} 
+ }  
+ mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest 
+}
+
 // Functions for Simon portion:
 
 void playTone(int tone, int duration) {
@@ -344,10 +358,10 @@ void playTone(int tone, int duration) {
     delayMicroseconds(tone);
     digitalWrite(speakerPin, LOW);
     delayMicroseconds(tone);
-    Serial.print("Playing tone:");
-    Serial.print(tone);
-    Serial.print("    Duration is:");
-    Serial.println(dur);
+//    Serial.print("Playing tone:");
+//    Serial.print(tone);
+//    Serial.print("    Duration is:");
+//    Serial.println(dur);
     tone_happening = 1;
   }
   tone_happening = 0;
@@ -357,37 +371,36 @@ void playTone(int tone, int duration) {
 
 void loop () {
   
-DateTime now;
-  
-Serial.print("Tone happening: ");
-Serial.println(tone_happening);
-if (tone_happening == 0){
-DateTime now = RTC.now();
-time_to_ints(now, current_time_array);
-}
 
 
 if (PM == 1){PM_DP = true;}
 else{PM_DP = false;}
 
-//time_to_ints(now, current_time_array);
+
 
 
 
 // The following checks the alarm condition:
 
-/*
-if (alarm == time_to_double(now) && alarm_on == true){
-  mode = "alarm_sound";
-}
 
-*/
+
+
+
 
 
 
 
 
 if(mode == "time_disp"){ // This is current time mode
+
+  DateTime now = RTC.now();
+  time_to_ints(now, current_time_array);
+  
+  update_screen();
+  
+  if (alarm == time_to_double(now) && alarm_on == true){
+  mode = "alarm_sound";
+  }
  
   buttoncheck(button_states); // Checks all 4 buttons and updates the array
 
@@ -510,7 +523,6 @@ double_clicked = 0;
  
 if(mode == "alarm_sound"){ // This is alarm mode
   
-time_array_to_digit_array(current_time_array, display_array);  
   
 int numarray[numlevels];
 int userarray[numlevels];
@@ -549,7 +561,7 @@ if (waitingforinput == 0){
  delay (200);
 i = 0;
 for (i = 0; i < currentlevel; i= i + 1){
-  leddelay = ledtime/(1+(speedfactor/numlevels)*(currentlevel - 1));
+  leddelay = ledtime;
       pinandtone = numarray[i];
       digitalWrite(ledpins[pinandtone], HIGH);
       playTone(tones[pinandtone], leddelay);
@@ -567,6 +579,12 @@ while (j < currentlevel){
           button_states[i] = digitalRead(buttonpins[i]);
           buttonchange = buttonchange + button_states[i];
         }
+        if (tick(10, time_set_timer) == 1){
+        update_screen();
+        }
+
+ 
+ mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
     }
      for (i = 0; i < 4; i = i + 1){
         if (button_states[i] == HIGH) {
