@@ -335,16 +335,16 @@ void LEDs_with_buttons(int button_status[4]){
  else{digitalWrite(led4, LOW);}
 }
 
-void update_screen(){
+void update_screen(int array_to_display[4]){
   for (int digit = 0; digit < 4; digit++)  {
    if (digit == 3){DP = PM_DP;} // For the last digit, light up decimal point if time is PM
    else if (digit == 0){DP = Alarm_DP;} // For the first digit, light up decimal point if the alarm is on
    else {DP = false;}
  
-   if (display_array[digit] == 10){          // This is the convention for a blank digit
+   if (array_to_display[digit] == 10){          // This is the convention for a blank digit
     mydisplay.setChar(0,3-digit,' ', DP); // This is how you print a blank digit (as a space character)
    }
-   else {mydisplay.setDigit(0, 3-digit, display_array[digit], DP);} 
+   else {mydisplay.setDigit(0, 3-digit, array_to_display[digit], DP);} 
  }  
  mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest 
 }
@@ -395,8 +395,8 @@ if(mode == "time_disp"){ // This is current time mode
 
   DateTime now = RTC.now();
   time_to_ints(now, current_time_array);
-  
-  update_screen();
+  time_array_to_digit_array(current_time_array, display_array);
+ 
   
   if (alarm == time_to_double(now) && alarm_on == true){
   mode = "alarm_sound";
@@ -409,7 +409,7 @@ if(mode == "time_disp"){ // This is current time mode
   check_button_presses();
 
    currentTime = millis();
-   time_array_to_digit_array(current_time_array, display_array); // Show current time unless otherwise specified. This is the default.
+
    
 // New tick mechanism:
 
@@ -519,6 +519,8 @@ click_once = 0;
 double_clicked = 0;
 }
 
+update_screen(display_array);
+
 }
  
 if(mode == "alarm_sound"){ // This is alarm mode
@@ -579,12 +581,12 @@ while (j < currentlevel){
           button_states[i] = digitalRead(buttonpins[i]);
           buttonchange = buttonchange + button_states[i];
         }
-        if (tick(10, time_set_timer) == 1){
-        update_screen();
-        }
 
- 
- mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
+        DateTime now = RTC.now();
+        time_to_ints(now, current_time_array);
+        time_array_to_digit_array(current_time_array, display_array);
+        update_screen(display_array); 
+
     }
      for (i = 0; i < 4; i = i + 1){
         if (button_states[i] == HIGH) {
@@ -668,8 +670,6 @@ if (currentlevel == numlevels){
   }
 gamestate = 0;
 currentlevel = 1;
-numlevels = numlevels + 2;
-speedfactor = speedfactor + 1;
 
 mode = "time_disp";
     }
