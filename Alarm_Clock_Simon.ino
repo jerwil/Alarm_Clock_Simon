@@ -14,7 +14,7 @@ unsigned long currentTime;
 unsigned long loopTime;
 
 int current_count;
-char* mode = "alarm_sound";
+char* mode = "time_disp";
 char* sub_mode = "minute_set";
 char* mode_str[] = {"Tacos","Clock","Alarm Set"};
 double alarm = 10800; // Alarm default in seconds
@@ -84,7 +84,7 @@ long randnum = 0; //initialize long variable for random number from 0-100.
 int randnumint = 0; //initialize random integer for loop. Will be from 1-4 later.
 int butwait = 500; //amount of time to wait for next button input (ghetto de-bounce)
 int ledtime = 500; //amount of time each LED flashes for when button is pressed
-int numlevels = 5; //number of levels until the game is won
+int numlevels = 10; //number of levels until the game is won
 int pinandtone = 0; //This integer is used when the sequence is displayed
 int correct = 0; //This variable must be 1 in order to go to the next level
 int speedfactor = 5; //This is the final speed of the lights and sounds for the last level. This increases as more games are won
@@ -576,8 +576,33 @@ for (i = 0; i < currentlevel; i= i + 1){
 i = 0;
 int buttonchange = 0;    
 int j = 0; // This is the current position in the sequence
-while (j < currentlevel){    
-    while (buttonchange == 0){
+while (j < currentlevel){
+  while (simon_timeout >= 5){
+  correct = 1;
+  for (i = 0; i < 4; i = i + 1){ 
+  button_states[i] = digitalRead(buttonpins[i]);
+  buttonchange = buttonchange + button_states[i];
+  }
+  i = 4;
+  if (blink == 0){
+  buzz(alarm_tone);
+  for(int k=0; k<4; k++){digitalWrite(ledpins[k], HIGH);}
+  }
+  else if (blink == 1) {for(int k=0; k<4; k++){digitalWrite(ledpins[k], LOW);}}
+    if (tick(500, half_second_timer) == 1){
+        if (blink == 0){blink = 1;}
+	else if (blink == 1){blink = 0;}   
+    }
+  if (buttonchange != 0){
+    simon_timeout = 0;
+      for(int k=0; k<4; k++){digitalWrite(ledpins[k], LOW);}
+    gamestate = 0;
+    currentlevel = 0;
+    j = currentlevel;
+  }    
+  }
+ if (gamestate == 1){
+    while (buttonchange == 0 && simon_timeout < 5){
           for (i = 0; i < 4; i = i + 1){ 
           button_states[i] = digitalRead(buttonpins[i]);
           buttonchange = buttonchange + button_states[i];
@@ -589,19 +614,11 @@ while (j < currentlevel){
         update_screen(display_array); 
         if (tick(1000, second_timer) == 1){
         simon_timeout += 1;
-        Serial.print("Simon timeout:");
-        Serial.println(simon_timeout);  
-        }
-        if (simon_timeout >= 5){
-        simon_timeout = 0;
-        correct = 0;
-        buttonchange = 5;  
-        i = 4;
-        j = currentlevel;
-        waitingforinput = 0;
-        }
-
+        Serial.print("Simon timeout: ");
+        Serial.println(simon_timeout);
+        }     
     }
+    if (simon_timeout < 5){
      for (i = 0; i < 4; i = i + 1){
         if (button_states[i] == HIGH) {
             simon_timeout = 0;
@@ -628,7 +645,11 @@ while (j < currentlevel){
             j = currentlevel;
             waitingforinput = 0;
         }
+ }
+ }
 }
+
+if (gamestate == 1){
 
 if (correct == 0){
   delay(300);
@@ -685,9 +706,10 @@ if (currentlevel == numlevels){
   }
 gamestate = 0;
 currentlevel = 1;
-
+simon_timeout = 0;
 mode = "time_disp";
     }
+}
 
 }
 
