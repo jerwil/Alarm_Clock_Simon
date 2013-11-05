@@ -94,13 +94,13 @@ const int ledpins[] = {7, 9, 11, 13}; //This is the LED pin format for the simon
 const int buttonpins[] = {6, 8, 10, 12}; //This is the button pin format for the simon code
 int lastbutton_states[] = {0,0,0,0}; 
 int buttonPushCounter[] = {0,0,0,0}; 
+int simon_timeout = 0;
 
 void setup () {
   
 randomSeed(analogRead(A0));
   
-mydisplay.shutdown(0, false);  // turns on display
-mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
+
   
     pinMode (speakerPin, OUTPUT);
     pinMode (alarmLEDPin, OUTPUT);
@@ -129,7 +129,8 @@ mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
     // following line sets the RTC to the date & time this sketch was compiled
     //RTC.adjust(DateTime(__DATE__, __TIME__));
     
-
+mydisplay.shutdown(0, false);  // turns on display
+mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
 
 }
 
@@ -586,10 +587,24 @@ while (j < currentlevel){
         time_to_ints(now, current_time_array);
         time_array_to_digit_array(current_time_array, display_array);
         update_screen(display_array); 
+        if (tick(1000, second_timer) == 1){
+        simon_timeout += 1;
+        Serial.print("Simon timeout:");
+        Serial.println(simon_timeout);  
+        }
+        if (simon_timeout >= 5){
+        simon_timeout = 0;
+        correct = 0;
+        buttonchange = 5;  
+        i = 4;
+        j = currentlevel;
+        waitingforinput = 0;
+        }
 
     }
      for (i = 0; i < 4; i = i + 1){
         if (button_states[i] == HIGH) {
+            simon_timeout = 0;
             digitalWrite(ledpins[i], HIGH);
             playTone(tones[i], ledtime);
             Serial.print("Input into tones function:");
