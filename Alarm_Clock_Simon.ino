@@ -6,7 +6,7 @@
  
 RTC_DS1307 RTC;
 
-LedControl mydisplay = LedControl(2, 3, 4, 1);
+LedControl mydisplay = LedControl(4, 3, 2, 1); // *** Changed for board design simplicity ***
 
 int adjust_amount = 60;    // how many seconds to adjust the time by
 int multiplier = 1; // This mutliplier is used to change to hour adjustment
@@ -371,26 +371,11 @@ void playTone(int tone, int duration) {
 // _____________ PROGRAM STARTS HERE: _____________//
 
 void loop () {
-  
-
 
 if (PM == 1){PM_DP = true;}
 else{PM_DP = false;}
 
-
-
-
-
 // The following checks the alarm condition:
-
-
-
-
-
-
-
-
-
 
 if(mode == "time_disp"){ // This is current time mode
 
