@@ -17,7 +17,7 @@ int current_count;
 char* mode = "time_disp";
 char* sub_mode = "minute_set";
 char* mode_str[] = {"Tacos","Clock","Alarm Set"};
-double alarm = 10800; // Alarm default in seconds
+double alarm = 28800; // Alarm default in seconds (8:00 AM)
 int alarm_array[6];
 int current_time_array[6];
 int old_second = 0; //This is used for the tick mechanism
@@ -127,7 +127,7 @@ randomSeed(analogRead(A0));
   }
   
     // following line sets the RTC to the date & time this sketch was compiled
-    //RTC.adjust(DateTime(__DATE__, __TIME__));
+    // RTC.adjust(DateTime(__DATE__, __TIME__));
     
 mydisplay.shutdown(0, false);  // turns on display
 mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
@@ -508,6 +508,8 @@ double_clicked = 0;
 update_screen(display_array);
 
 }
+
+// _____________ Alarm Mode: _____________//
  
 if(mode == "alarm_sound"){ // This is alarm mode
   
@@ -562,7 +564,7 @@ i = 0;
 int buttonchange = 0;    
 int j = 0; // This is the current position in the sequence
 while (j < currentlevel){
-  while (simon_timeout >= 5){
+  while (simon_timeout >= 5){ // This code will cause the game to timeout and sound the alarm if the user doesn't respond within 5 seconds
   correct = 1;
   for (i = 0; i < 4; i = i + 1){ 
   button_states[i] = digitalRead(buttonpins[i]);
@@ -578,13 +580,17 @@ while (j < currentlevel){
         if (blink == 0){blink = 1;}
 	else if (blink == 1){blink = 0;}   
     }
-  if (buttonchange != 0){
+  if (buttonchange != 0){ // This gets the alarm out of the timeout state and back into the game
     simon_timeout = 0;
       for(int k=0; k<4; k++){digitalWrite(ledpins[k], LOW);}
     gamestate = 0;
     currentlevel = 0;
     j = currentlevel;
-  }    
+  }  
+        DateTime now = RTC.now();
+        time_to_ints(now, current_time_array);
+        time_array_to_digit_array(current_time_array, display_array);
+        update_screen(display_array);   
   }
  if (gamestate == 1){
     while (buttonchange == 0 && simon_timeout < 5){
@@ -598,7 +604,7 @@ while (j < currentlevel){
         time_array_to_digit_array(current_time_array, display_array);
         update_screen(display_array); 
         if (tick(1000, second_timer) == 1){
-        simon_timeout += 1;
+        simon_timeout += 1; // The timeout timer will fill up as long as there is no input
         Serial.print("Simon timeout: ");
         Serial.println(simon_timeout);
         }     
