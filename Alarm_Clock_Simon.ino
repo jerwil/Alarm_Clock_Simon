@@ -383,6 +383,8 @@ else{PM_DP = false;}
 
 if(mode == "time_disp"){ // This is current time mode
 
+// Grab time from real time clock (RTC) and convert into format used by this program
+
   DateTime now = RTC.now();
   time_to_ints(now, current_time_array);
   time_array_to_digit_array(current_time_array, display_array);
@@ -413,6 +415,11 @@ if (LCD_brightness >= 1){mydisplay.shutdown(0, false);}
 
 if (button_states[1])
   {
+  if (tick(500, half_second_timer) == 1)
+    {
+      if (blink == 0){blink = 1;}
+      else if (blink == 1){blink = 0;}  
+    }
   if (button_counter >= 8){time_set_tick = 5;} // As the button is held down longer, the time adjustment speed increases
   else if (button_counter >= 5){time_set_tick = 10;}
   else if (button_counter >= 3){time_set_tick = 50;}
@@ -428,6 +435,7 @@ if (button_states[1])
       now = RTC.now();
       }
       if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
+      blink = 1;
     }
     else if (compare_array(0,1,0,1,button_states)){
       if (tick(time_set_tick, time_set_timer) == 1)
@@ -437,15 +445,24 @@ if (button_states[1])
       now = RTC.now();
       }
       if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
+      blink = 1;
     }
     else { button_counter = 0;}
   time_array_to_digit_array(current_time_array, display_array);
+  if (blink == 0 && button_counter == 0){
+    for(int k=0; k<4; k++){display_array[k] = 10;}
+  }
   }
 
 
 // _____________ Setting Alarm: _____________//
 
 if (button_states[0]){
+  if (tick(500, half_second_timer) == 1)
+  {
+    if (blink == 0){blink = 1;}
+    else if (blink == 1){blink = 0;}  
+  }
   if (button_counter >= 8){time_set_tick = 5;} // As the button is held down longer, the time adjustment speed increases
   else if (button_counter >= 5){time_set_tick = 10;}
   else if (button_counter >= 3){time_set_tick = 50;}
@@ -455,16 +472,21 @@ if (button_states[0]){
     {
     if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
     if (tick(time_set_tick, time_set_timer) == 1){alarm -= adjust_amount*multiplier;}
+    blink = 1;
     }
   else if (compare_array(1,0,0,1,button_states))
     {
     if (tick(1000,button_hold_timer) == 1){button_counter += 1;}
     if (tick(time_set_tick, time_set_timer) == 1){alarm += adjust_amount*multiplier;}
+    blink = 1;
     }
   else { button_counter = 0;}  
   if (alarm > 86400) {alarm -= 86400;} //Alarm will roll over
   if (alarm < 0) {alarm += 86400;}
   time_array_to_digit_array(alarm_array, display_array);
+  if (blink == 0 && button_counter == 0){
+    for(int k=0; k<4; k++){display_array[k] = 10;}
+  }
 }
 
 // _____________ Toggling Alarm: _____________//
@@ -495,8 +517,21 @@ if (double_clicked == 1){
 // This allows the user to choose the sequence length required to turn off the alarm. This is done by holding down the first two buttons then using the right two buttons as + and -.
 // To keep it challenging, a sequence of 5 is the minimum, but 16 is the max (10 is really hard anyway!)
 if (button_states[0] && button_states[1]){
-  if(compare_array(0,0,0,1,button_presses) && numlevels < 17){numlevels ++;} // If the 4th button is pressed and no others are, increase number of levels up to max of 16 (5 in sequence)
-  if(compare_array(0,0,1,0,button_presses) && numlevels > 6){numlevels --;} // If the 3rd button is pressed and no others are, decrease number of levels down to min of 6 (5 in sequence)
+  if (tick(500, half_second_timer) == 1)
+  {
+    if (blink == 0){blink = 1;}
+    else if (blink == 1){blink = 0;}  
+  }
+  if(compare_array(0,0,0,1,button_presses) && numlevels < 17) // If the 4th button is pressed and no others are, increase number of levels up to max of 16 (5 in sequence)
+  {
+    numlevels ++; 
+    blink = 1;
+  } 
+  if(compare_array(0,0,1,0,button_presses) && numlevels > 6) // If the 3rd button is pressed and no others are, decrease number of levels down to min of 6 (5 in sequence)
+  {
+    numlevels --;
+    blink = 1;
+  }
   display_array[0] = 10; // First two digits are blank
   display_array[1] = 10;
   if ((numlevels-1) < 10){
@@ -507,17 +542,18 @@ if (button_states[0] && button_states[1]){
     display_array[2] = (numlevels-1)/10;
     display_array[3] = (numlevels-1)%10;
   }
+  if (blink == 0 && button_counter == 0){for(int k=0; k<4; k++){display_array[k] = 10;}}
 }
 
 // _____________ Voluntary Simon Mode: _____________//
 // This will allow the user to play Simon on-demand by pushing all 4 buttons at once when the alarm is off
-if (button_states[0] && button_states[1] && button_states[2] && button_states[3] && alarm_on == false){
+if (compare_array(1,1,1,1,button_states) && alarm_on == false){
 mode = "alarm_sound";
 for(int k=0; k<4; k++){digitalWrite(ledpins[k], LOW);}
 delay(500);
 }
 
-update_screen(display_array);
+update_screen(display_array); // Every cycle of time display mode updates the screen with whatever is in the display_array
 
 }
 
@@ -577,7 +613,15 @@ i = 0;
 int buttonchange = 0;    
 int j = 0; // This is the current position in the sequence
 while (j < currentlevel){
-  while (simon_timeout >= 5){ // This code will cause the game to timeout and sound the alarm if the user doesn't respond within 5 seconds
+  if (simon_timeout >= 5 && alarm_on == false){
+  currentlevel = numlevels;
+  j = numlevels;
+  mode = "time_disp";
+  simon_timeout = 0;
+  gamestate = 0;
+  }
+  else{
+  while (simon_timeout >= 5 && alarm_on == true){ // This code will cause the game to timeout and sound the alarm if the user doesn't respond within 5 seconds
   correct = 1;
   for (i = 0; i < 4; i = i + 1){ 
   button_states[i] = digitalRead(buttonpins[i]);
@@ -616,123 +660,110 @@ while (j < currentlevel){
         time_to_ints(now, current_time_array);
         time_array_to_digit_array(current_time_array, display_array);
         update_screen(display_array); 
-        if (tick(1000, second_timer) == 1 && alarm_on == true){ //Simon will only time out if the alarm is on (not in voluntary Simon mode
+        if (tick(1000, second_timer) == 1){
         simon_timeout += 1; // The timeout timer will fill up as long as there is no input
         Serial.print("Simon timeout: ");
         Serial.println(simon_timeout);
         }     
     }
     if (simon_timeout < 5){
+     buttoncheck(button_states);
      for (i = 0; i < 4; i = i + 1){
         if (button_states[i] == HIGH) {
-            simon_timeout = 0;
-            digitalWrite(ledpins[i], HIGH);
-            playTone(tones[i], ledtime);
-            Serial.print("Input into tones function:");
-            Serial.println(tones[i]);
-            digitalWrite(ledpins[i], LOW);
-            waitingforinput = 0;
-            userarray[j]=i; 
-            button_states[i] = LOW;
-            buttonchange = 0;
+          simon_timeout = 0;
+          digitalWrite(ledpins[i], HIGH);
+          playTone(tones[i], ledtime);
+          Serial.print("Input into tones function:");
+          Serial.println(tones[i]);
+          digitalWrite(ledpins[i], LOW);
+          waitingforinput = 0;
+          userarray[j]=i; 
+          button_states[i] = LOW;
+          buttonchange = 0;
          }
        } 
-        if (userarray[j] == numarray[j]){
-            Serial.println("Correct!");
-            j++;  
-            correct = 1;
-            }
-        else{
+        if (userarray[j] == numarray[j])
+        {
+          Serial.println("Correct!");
+          j++;  
+          correct = 1;
+        }
+        else
+        {
             Serial.println("Wrong!");
             correct = 0;
             i = 4;
             j = currentlevel;
             waitingforinput = 0;
         }
- }
+     }
  }
 }
-
+}
 if (gamestate == 1){
 
-if (correct == 0){
-  delay(300);
-  i = 0;
+  if (correct == 0){
+    delay(300);
+    i = 0;
+    gamestate = 0;
+    currentlevel = 1;
+    for (i = 0; i < 4; i = i + 1){
+           digitalWrite(ledpins[i], HIGH);
+        }
+            playTone(tones[4], ledtime);
+     for (i = 0; i < 4; i = i + 1){
+           digitalWrite(ledpins[i], LOW);   
+         }
+         delay (200);
+    for (i = 0; i < 4; i = i + 1){
+           digitalWrite(ledpins[i], HIGH);
+        }
+            playTone(tones[4], ledtime);
+     for (i = 0; i < 4; i = i + 1){
+           digitalWrite(ledpins[i], LOW);   
+         }
+         
+         delay(500);
+         gamestate = 0;
+  }
+  
+  Serial.println("The user sequence is");
+  for (i = 0; i < numlevels; i = i + 1) {
+     Serial.println(userarray[i]);
+  }
+  Serial.println("The answers are");
+  for (i = 0; i < numlevels; i = i + 1) {
+     Serial.println(numarray[i]);
+  }
+  
+  if (correct == 1){
+      currentlevel++;
+      waitingforinput = 0;
+      }
+  if (currentlevel == numlevels){
+    Serial.println("VICTORY!");
+    delay(500);
+    // The following is the victory anmiation/sound (attempted final fantasy victory song):
+    int notes[] = {2, 2, 2, 2, 0, 1, 2, 1, 2};
+    int note = 0;
+    int tempo[] = {200, 200, 200, 400, 400, 400, 200, 200, 600}; 
+    int breaks[] = {100, 100, 100, 200, 200, 200, 300, 100, 200}; 
+    for (i = 0; i < 9; i = i + 1){
+    note = notes[i];
+      digitalWrite(ledpins[note], HIGH);
+      playTone(tones[note], tempo[i]);
+      digitalWrite(ledpins[note], LOW);
+      delay(breaks[i]);
+    }
   gamestate = 0;
   currentlevel = 1;
-  for (i = 0; i < 4; i = i + 1){
-         digitalWrite(ledpins[i], HIGH);
+  simon_timeout = 0;
+  mode = "time_disp";
       }
-          playTone(tones[4], ledtime);
-   for (i = 0; i < 4; i = i + 1){
-         digitalWrite(ledpins[i], LOW);   
-       }
-       delay (200);
-  for (i = 0; i < 4; i = i + 1){
-         digitalWrite(ledpins[i], HIGH);
-      }
-          playTone(tones[4], ledtime);
-   for (i = 0; i < 4; i = i + 1){
-         digitalWrite(ledpins[i], LOW);   
-       }
-       
-       delay(500);
-       gamestate = 0;
-}
-
-Serial.println("The user sequence is");
-for (i = 0; i < numlevels; i = i + 1) {
-   Serial.println(userarray[i]);
-}
-Serial.println("The answers are");
-for (i = 0; i < numlevels; i = i + 1) {
-   Serial.println(numarray[i]);
-}
-
-if (correct == 1){
-    currentlevel++;
-    waitingforinput = 0;
-    }
-if (currentlevel == numlevels){
-  Serial.println("VICTORY!");
-  delay(500);
-  // The following is the victory anmiation/sound:
-  int notes[] = {2, 2, 2, 2, 0, 1, 2, 1, 2};
-  int note = 0;
-  int tempo[] = {200, 200, 200, 400, 400, 400, 200, 200, 600}; 
-  int breaks[] = {100, 100, 100, 200, 200, 200, 300, 100, 200}; 
-  for (i = 0; i < 9; i = i + 1){
-  note = notes[i];
-    digitalWrite(ledpins[note], HIGH);
-    playTone(tones[note], tempo[i]);
-    digitalWrite(ledpins[note], LOW);
-    delay(breaks[i]);
-  }
-gamestate = 0;
-currentlevel = 1;
-simon_timeout = 0;
-mode = "time_disp";
-    }
 }
 
 }
 
-// At the end of each cycle, send display array to the 4 digit display
-/*
-
- for (int digit = 0; digit < 4; digit++)  {
-   if (digit == 3){DP = PM_DP;} // For the last digit, light up decimal point if time is PM
-   else if (digit == 0){DP = Alarm_DP;} // For the first digit, light up decimal point if the alarm is on
-   else {DP = false;}
- 
-   if (display_array[digit] == 10){          // This is the convention for a blank digit
-    mydisplay.setChar(0,3-digit,' ', DP); // This is how you print a blank digit (as a space character)
-   }
-   else {mydisplay.setDigit(0, 3-digit, display_array[digit], DP);} 
- } 
- 
- mydisplay.setIntensity(0, LCD_brightness); // 15 = brightest
-*/
 }
 
 
