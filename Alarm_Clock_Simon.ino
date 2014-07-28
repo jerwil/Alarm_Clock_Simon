@@ -472,11 +472,22 @@ if (button_states[0]){
 if (alarm_on == true){Alarm_DP = true;} // This indicates if the alarm is on (Alarm_DP means alarm decimal point)
 else {Alarm_DP = false;}
 
-double_clicked = double_click(1000, button_presses[0]);
+double_clicked = double_click(250, button_presses[0]);
 if (double_clicked == 1){
-alarm_on = !alarm_on;
-click_once = 0;
-double_clicked = 0;
+  alarm_on = !alarm_on;
+  click_once = 0;
+  double_clicked = 0;
+}
+
+// _____________ Toggling 12/24 hour mode: _____________//
+// The clock is switched between 12 and 24 hour mode by double-clicking the 2nd button
+
+double_clicked = double_click(250, button_presses[1]);
+if (double_clicked == 1){
+  if (time_format == 12){time_format = 24;}
+  else if (time_format == 24){time_format = 12;}
+  click_once = 0;
+  double_clicked = 0;
 }
 
 
@@ -484,12 +495,10 @@ double_clicked = 0;
 // This allows the user to choose the sequence length required to turn off the alarm. This is done by holding down the first two buttons then using the right two buttons as + and -.
 // To keep it challenging, a sequence of 5 is the minimum, but 16 is the max (10 is really hard anyway!)
 if (button_states[0] && button_states[1]){
-
-if(compare_array(0,0,0,1,button_presses) && numlevels < 17){numlevels ++;} // If the 4th button is pressed and no others are, increase number of levels up to max of 16 (5 in sequence)
-if(compare_array(0,0,1,0,button_presses) && numlevels > 6){numlevels --;} // If the 3rd button is pressed and no others are, decrease number of levels down to min of 6 (5 in sequence)
-
-display_array[0] = 10;
-display_array[1] = 10;
+  if(compare_array(0,0,0,1,button_presses) && numlevels < 17){numlevels ++;} // If the 4th button is pressed and no others are, increase number of levels up to max of 16 (5 in sequence)
+  if(compare_array(0,0,1,0,button_presses) && numlevels > 6){numlevels --;} // If the 3rd button is pressed and no others are, decrease number of levels down to min of 6 (5 in sequence)
+  display_array[0] = 10; // First two digits are blank
+  display_array[1] = 10;
   if ((numlevels-1) < 10){
   display_array[2] = 0;
   display_array[3] = numlevels-1;
@@ -501,7 +510,7 @@ display_array[1] = 10;
 }
 
 // _____________ Voluntary Simon Mode: _____________//
-// This will allow the user to play Simon on-demand by pushing all 4 buttons at once
+// This will allow the user to play Simon on-demand by pushing all 4 buttons at once when the alarm is off
 if (button_states[0] && button_states[1] && button_states[2] && button_states[3] && alarm_on == false){
 mode = "alarm_sound";
 for(int k=0; k<4; k++){digitalWrite(ledpins[k], LOW);}
@@ -518,11 +527,10 @@ update_screen(display_array);
  
 if(mode == "alarm_sound"){ // This is alarm mode
   
+//The following clears out then initializes both arrays for new games  
   
 int numarray[numlevels];
 int userarray[numlevels];
-
-//The following clears out then initializes both arrays for new games
 int i;
 
 if (gamestate == 0){
