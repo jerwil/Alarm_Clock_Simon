@@ -9,15 +9,14 @@ RTC_DS1307 RTC;
 
 LedControl mydisplay = LedControl(4, 3, 2, 1); // *** Changed for board design simplicity ***
 
-int adjust_amount = 60;    // how many seconds to adjust the time by
-int multiplier = 1; // This mutliplier is used to change to hour adjustment
+int adjust_amount = 60;    // how many seconds to adjust the time by in seconds
+int multiplier = 1; // This mutliplier is used to change to hour adjustment if needed
+
 unsigned long currentTime;
 unsigned long loopTime;
 
 int current_count;
 char* mode = "time_disp";
-char* sub_mode = "minute_set";
-char* mode_str[] = {"Tacos","Clock","Alarm Set"};
 double alarm = 28800; // Alarm default in seconds (8:00 AM)
 int alarm_array[6];
 int current_time_array[6];
@@ -37,6 +36,8 @@ double time_set_timer[1] = {0}; // This is used to keep track of the timer used 
 double button_hold_timer[1] = {0}; // This is used to keep track of the timer used for time setting
 int time_set_tick = 200;
 int PM = 0; // This is the indicator that time is in PM
+
+// _____ Arrays to store button state: _____ //
 
 int button1_press_initiate[1] = {0}; 
 int button1_press_completed[1] = {0}; 
@@ -61,7 +62,9 @@ boolean Alarm_DP = false; //Indicate if the alarm decimal point should be lit
 boolean PM_DP = false; //Indicate if the PM decimal point should be lit
 boolean DP = false; //A general decimal point variable
 int LCD_brightness = 7;
-int rotary = 0;
+
+
+// _______ Hardware Constants: ________ //
 
 int button1 = 6;
 int button2 = 8;
@@ -76,7 +79,7 @@ int led4 = 13;
 int button_states[4] = {0,0,0,0};
 int button_presses[4] = {0,0,0,0};
 
-// Constants for Simon portion: //
+// _______ Constants for Simon portion: ______ //
 
 int gamestate = 0;
 int waitingforinput = 0;
@@ -85,7 +88,7 @@ long randnum = 0; //initialize long variable for random number from 0-100.
 int randnumint = 0; //initialize random integer for loop. Will be from 1-4 later.
 int butwait = 500; //amount of time to wait for next button input (ghetto de-bounce)
 int ledtime = 500; //amount of time each LED flashes for when button is pressed
-int numlevels = 10; //number of levels until the game is won
+int numlevels = 11; //number of levels + 1 until the game is won (numlevels-1 = sequence length)
 int pinandtone = 0; //This integer is used when the sequence is displayed
 int correct = 0; //This variable must be 1 in order to go to the next level
 int speedfactor = 5; //This is the final speed of the lights and sounds for the last level. This increases as more games are won
@@ -410,7 +413,7 @@ if (LCD_brightness >= 1){mydisplay.shutdown(0, false);}
 
 if (button_states[1])
   {
-  if (button_counter >= 8){time_set_tick = 5;}
+  if (button_counter >= 8){time_set_tick = 5;} // As the button is held down longer, the time adjustment speed increases
   else if (button_counter >= 5){time_set_tick = 10;}
   else if (button_counter >= 3){time_set_tick = 50;}
   else {time_set_tick = 200;}
@@ -443,7 +446,7 @@ if (button_states[1])
 // _____________ Setting Alarm: _____________//
 
 if (button_states[0]){
-  if (button_counter >= 8){time_set_tick = 5;}
+  if (button_counter >= 8){time_set_tick = 5;} // As the button is held down longer, the time adjustment speed increases
   else if (button_counter >= 5){time_set_tick = 10;}
   else if (button_counter >= 3){time_set_tick = 50;}
   else {time_set_tick = 200;}
@@ -478,12 +481,23 @@ double_clicked = 0;
 
 
 // _____________ Setting Difficulty: _____________//
-// This allows the user to choose the sequence length required to turn off the alarm
+// This allows the user to choose the sequence length required to turn off the alarm. This is done by holding down the first two buttons then using the right two buttons as + and -.
+// To keep it challenging, a sequence of 5 is the minimum, but 16 is the max (10 is really hard anyway!)
 if (button_states[0] && button_states[1]){
+
+if(compare_array(0,0,0,1,button_presses) && numlevels < 17){numlevels ++;} // If the 4th button is pressed and no others are, increase number of levels up to max of 16 (5 in sequence)
+if(compare_array(0,0,1,0,button_presses) && numlevels > 6){numlevels --;} // If the 3rd button is pressed and no others are, decrease number of levels down to min of 6 (5 in sequence)
+
 display_array[0] = 10;
 display_array[1] = 10;
-display_array[2] = 3;
-display_array[3] = 4;
+  if ((numlevels-1) < 10){
+  display_array[2] = 0;
+  display_array[3] = numlevels-1;
+  }
+  else {
+    display_array[2] = (numlevels-1)/10;
+    display_array[3] = (numlevels-1)%10;
+  }
 }
 
 // _____________ Voluntary Simon Mode: _____________//
