@@ -1,3 +1,4 @@
+// Arduino memory game alarm clock by Jeremy Wilson
 // Date and time functions using a DS1307 RTC connected via I2C and Wire lib
  
 #include <Wire.h>
@@ -98,7 +99,7 @@ int simon_timeout = 0;
 
 void setup () {
   
-randomSeed(analogRead(A0));
+randomSeed(analogRead(A0)); //By taking the random seed from an open (unwired) analog channel, it is as close as you can get to a true random number
   
 
   
@@ -375,7 +376,7 @@ void loop () {
 if (PM == 1){PM_DP = true;}
 else{PM_DP = false;}
 
-// The following checks the alarm condition:
+
 
 if(mode == "time_disp"){ // This is current time mode
 
@@ -383,7 +384,8 @@ if(mode == "time_disp"){ // This is current time mode
   time_to_ints(now, current_time_array);
   time_array_to_digit_array(current_time_array, display_array);
  
-  
+ // The following checks the alarm condition:
+ 
   if (alarm == time_to_double(now) && alarm_on == true){
   mode = "alarm_sound";
   }
@@ -394,39 +396,8 @@ if(mode == "time_disp"){ // This is current time mode
 
   check_button_presses();
 
-   currentTime = millis();
+  currentTime = millis();
 
-   
-// New tick mechanism:
-
-
-//if (tick(1000, second_timer) == 1){
-//  Serial.print("Unix time: ");
-//  Serial.print(now.unixtime());
-//  Serial.println();
-//  printtime(now);
-//  old_second = now_second;
-//  Serial.print("Time as a double: ");
-//  Serial.print(time_to_double(now));
-//  Serial.println();
-//  if (button_hi == true){ // This code checks to see if the button has been held down long enough to set alarm
-////    if (button_counter >= 3) {
-////      mode = "alarm_set";
-////	  sub_mode = "hour_set";
-////    Serial.print("Switched mode to:");
-////    Serial.print(mode);
-////    Serial.println();
-////	button_pushed = 0;
-////    }
-////    button_counter += 1;
-//  }
-//  else {
-//   button_counter = 0; 
-//  }
-//  Serial.print("Button held for:");
-//  Serial.print(button_counter);
-//  Serial.println();
-//}
 
 // _____________ Setting Display Brightness: _____________//
 
@@ -488,14 +459,14 @@ if (button_states[0]){
     if (tick(time_set_tick, time_set_timer) == 1){alarm += adjust_amount*multiplier;}
     }
   else { button_counter = 0;}  
-  if (alarm > 86400) {alarm -= 86400;}
+  if (alarm > 86400) {alarm -= 86400;} //Alarm will roll over
   if (alarm < 0) {alarm += 86400;}
   time_array_to_digit_array(alarm_array, display_array);
 }
 
 // _____________ Toggling Alarm: _____________//
-
-if (alarm_on == true){Alarm_DP = true;} // This indicates if the alarm is on
+// The alarm is toggled on and off by double-clicking the first button
+if (alarm_on == true){Alarm_DP = true;} // This indicates if the alarm is on (Alarm_DP means alarm decimal point)
 else {Alarm_DP = false;}
 
 double_clicked = double_click(1000, button_presses[0]);
@@ -505,9 +476,29 @@ click_once = 0;
 double_clicked = 0;
 }
 
+
+// _____________ Setting Difficulty: _____________//
+// This allows the user to choose the sequence length required to turn off the alarm
+if (button_states[0] && button_states[1]){
+display_array[0] = 10;
+display_array[1] = 10;
+display_array[2] = 3;
+display_array[3] = 4;
+}
+
+// _____________ Voluntary Simon Mode: _____________//
+// This will allow the user to play Simon on-demand by pushing all 4 buttons at once
+if (button_states[0] && button_states[1] && button_states[2] && button_states[3] && alarm_on == false){
+mode = "alarm_sound";
+for(int k=0; k<4; k++){digitalWrite(ledpins[k], LOW);}
+delay(500);
+}
+
 update_screen(display_array);
 
 }
+
+// _______ End of time display mode ______//
 
 // _____________ Alarm Mode: _____________//
  
@@ -517,7 +508,7 @@ if(mode == "alarm_sound"){ // This is alarm mode
 int numarray[numlevels];
 int userarray[numlevels];
 
-//The following clears out both arrays for new games
+//The following clears out then initializes both arrays for new games
 int i;
 
 if (gamestate == 0){
@@ -603,7 +594,7 @@ while (j < currentlevel){
         time_to_ints(now, current_time_array);
         time_array_to_digit_array(current_time_array, display_array);
         update_screen(display_array); 
-        if (tick(1000, second_timer) == 1){
+        if (tick(1000, second_timer) == 1 && alarm_on == true){ //Simon will only time out if the alarm is on (not in voluntary Simon mode
         simon_timeout += 1; // The timeout timer will fill up as long as there is no input
         Serial.print("Simon timeout: ");
         Serial.println(simon_timeout);
