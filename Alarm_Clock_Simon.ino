@@ -550,6 +550,8 @@ if (button_states[0] && button_states[1]){
 if (compare_array(1,1,1,1,button_states) && alarm_on == false){
 mode = "alarm_sound";
 for(int k=0; k<4; k++){digitalWrite(ledpins[k], LOW);}
+double_clicked = 0;
+click_once = 0;
 delay(500);
 }
 
@@ -613,12 +615,16 @@ i = 0;
 int buttonchange = 0;    
 int j = 0; // This is the current position in the sequence
 while (j < currentlevel){
-  if (simon_timeout >= 5 && alarm_on == false){
+  if (simon_timeout >= 5 && alarm_on == false){ // Timeout if in voluntary Simon mode and reset all game parameters
   currentlevel = numlevels;
   j = numlevels;
   mode = "time_disp";
   simon_timeout = 0;
   gamestate = 0;
+  click_once = 0;
+  double_clicked = 0;
+  button_presses[0] = 0;
+  button_presses[1] = 0;
   }
   else{
   while (simon_timeout >= 5 && alarm_on == true){ // This code will cause the game to timeout and sound the alarm if the user doesn't respond within 5 seconds
