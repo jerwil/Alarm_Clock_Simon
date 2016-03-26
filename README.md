@@ -41,7 +41,7 @@ This project brought together a lot of smaller projects I had worked on in the p
 
 *Real Time Clock*
 
-The DS 1307 real time clock requires a crystal, resistors, and a 3V battery. It communicates to the ATMega328 by the I²C protocol.I started out using a breakout board kit for prototyping, for for the final design, all the support hardware was put onto the alarm clock circuit board.
+The DS 1307 real time clock requires a crystal, resistors, and a 3V battery. It communicates to the ATMega328 by the I²C protocol.I started out using a breakout board kit for prototyping, but for the final design all the support hardware was put onto the alarm clock circuit board.
 
 *ATMega238, buttons, lights, and memory game*
 
@@ -80,5 +80,3 @@ See the included Fritzing diagram (.fzz file) for details.
 ### License
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">Memory Game Alarm Clock</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="http://www.JeremyAdamWilson.com">Jeremy Wilson</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.
-
-
